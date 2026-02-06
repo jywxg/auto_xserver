@@ -7,8 +7,6 @@ XServer GAME 自动登录和续期脚本
 # =====================================================================
 #                          导入依赖
 # =====================================================================
-import socket
-import subprocess
 
 import asyncio
 import time
@@ -20,29 +18,20 @@ import json
 import requests
 from playwright.async_api import async_playwright, Playwright, Browser, BrowserContext, Page
 from playwright_stealth import stealth_async
-from urllib.parse import urlparse, unquote
-
-
-
 
 # =====================================================================
 #                          配置区域
 # =====================================================================
 
 # 浏览器配置
-IS_GITHUB_ACTIONS = (os.getenv("GITHUB_ACTIONS") or "").lower() == "true"
+IS_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 USE_HEADLESS = IS_GITHUB_ACTIONS or os.getenv("USE_HEADLESS", "false").lower() == "true"
 WAIT_TIMEOUT = 10000     # 页面元素等待超时时间(毫秒)
 PAGE_LOAD_DELAY = 3      # 页面加载延迟时间(秒)
 
 # 代理配置 - 可选，不填则不使用代理
-# 补协议逻辑（没 :// 就默认 socks5://），那么你在 Secrets 里也可以只填：1.2.3.4:1080，它会自动变成 socks5://1.2.3.4:1080。
-PROXY_SERVER = (os.getenv("PROXY_SERVER") or "").strip()
-if PROXY_SERVER and "://" not in PROXY_SERVER:
-    # 默认按 socks5 处理；如果你实际是 http 代理，就改成 "http://"
-    PROXY_SERVER = "socks5://" + PROXY_SERVER
-USE_PROXY = bool(PROXY_SERVER)
-
+PROXY_SERVER = os.getenv("PROXY_SERVER") or ""
+USE_PROXY = bool(PROXY_SERVER)  # 如果有代理地址则启用
 
 # XServer登录配置 - 可以直接填写或使用环境变量
 LOGIN_EMAIL = os.getenv("XSERVER_EMAIL") or ""
@@ -52,50 +41,7 @@ TARGET_URL = "https://secure.xserver.ne.jp/xapanel/login/xmgame"
 # Telegram配置 - 可选，不填则不推送
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN") or ""
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID") or ""
-# =====================================================================
-#               代理解析模块
-# =====================================================================
-def parse_proxy_server(proxy_server: str):
-    """
-    输入示例：
-      socks5://user:pass@1.2.3.4:1080
-      socks5h://user:%40p%3Ass@host:1080
-      http://user:pass@host:8080
-      socks5://[2400:8a20:112:1::b6]:31017
-      socks5://user:pass@[2400:8a20:112:1::b6]:31017
-      host:1080   （无协议时外层可先补 socks5://）
-    输出：
-      (server, username, password)
-      server 形如 "socks5://host:port" 或 "http://host:port"
-    """
-    if not proxy_server:
-        return None, None, None
 
-    s = proxy_server.strip()
-
-    # 如果没写 scheme，按你现有逻辑默认 socks5
-    if "://" not in s:
-        s = "socks5://" + s
-
-    u = urlparse(s)
-
-    scheme = u.scheme or "socks5"
-    host = u.hostname
-    port = u.port
-
-    if not host or not port:
-        raise ValueError(f"Bad PROXY_SERVER: {proxy_server}")
-
-    # IPv6 需要加 []
-    host_part = f"[{host}]" if ":" in host and not host.startswith("[") else host
-
-    server = f"{scheme}://{host_part}:{port}"
-
-    # urlparse 会把 %xx 保留在 username/password 里，需要 unquote
-    username = unquote(u.username) if u.username else None
-    password = unquote(u.password) if u.password else None
-
-    return server, username, password
 # =====================================================================
 #                        Telegram 推送模块
 # =====================================================================
@@ -202,57 +148,7 @@ class XServerAutoLogin:
     # =================================================================
     #                       1. 浏览器管理模块
     # =================================================================
-    def _probe_proxy_http(self, proxy_server: str) -> bool:
-        """用 curl 走代理试访问 Google 204，用于判断代理协议/鉴权是否OK。"""
-        if not proxy_server:
-            return False
-        try:
-            test_url = "https://www.google.com/generate_204"
-
-            cmd = [
-                "bash", "-lc",
-                f"curl -I -sS --max-time 12 --proxy '{proxy_server}' {test_url} | head -n 1"
-            ]
-            out = subprocess.check_output(cmd, stderr=subprocess.STDOUT, text=True).strip()
-            print(f"🧪 代理HTTP探测返回: {out}")
-            return out.startswith("HTTP/")  # 期望 HTTP/* 204
-        except Exception as e:
-            print(f"🧪 代理HTTP探测失败: {e}")
-            return False
-
-    def _get_effective_proxy(self, proxy_server: str):
-        """检测代理端口是否可达；可达返回 proxy_server，不可达返回 None"""
-        try:
-            if not proxy_server:
-                return None
-
-            u = proxy_server.strip()
-            if not u:
-                return None
-
-            # 统一解析：没写协议默认按 socks5:// 解析（与你配置区逻辑一致）
-            if "://" not in u:
-                u = "socks5://" + u
-
-            p = urlparse(u)
-            host, port = p.hostname, p.port
-
-            if not host or not port:
-                print(f"⚠️ 代理格式不完整（需要 host:port 或 scheme://host:port），禁用代理: {proxy_server}")
-                return None
-
-            s = socket.socket()
-            s.settimeout(5)
-            s.connect((host, port))
-            s.close()
-
-            print(f"🌐 使用代理(端口可达): {proxy_server}")
-            return proxy_server
-
-        except Exception as e:
-            print(f"⚠️ 代理端口不可达，已禁用代理: {proxy_server} | {e}")
-            return None
-    
+        
     async def setup_browser(self):
         """设置并启动 Playwright 浏览器"""
         try:
@@ -269,26 +165,16 @@ class XServerAutoLogin:
                 '--accept-lang=ja-JP,ja,en-US,en'
             ]
             
-            launch_options = dict(
+            # 如果启用代理，添加代理参数
+            if USE_PROXY and PROXY_SERVER:
+                print(f"🌐 使用代理: {PROXY_SERVER}")
+                browser_args.append(f'--proxy-server={PROXY_SERVER}')
+            
+            # 启动浏览器
+            self.browser = await playwright.chromium.launch(
                 headless=self.headless,
                 args=browser_args
             )
-
-
-            # 如果启用代理，添加代理参数
-            effective_proxy = self._get_effective_proxy(PROXY_SERVER)
-            if effective_proxy:
-                server, username, password = parse_proxy_server(effective_proxy)
-                launch_options["proxy"] = {"server": server}
-                if username:
-                    launch_options["proxy"]["username"] = username
-                if password:
-                    launch_options["proxy"]["password"] = password
-            
-            # 启动浏览器
-            self.browser = await playwright.chromium.launch(**launch_options)
-            # ⚠️ 不要再在 browser_args 里 append --proxy-server
-            # ⚠️ 也不要再在 context_options 里设置 proxy
             
             # 创建浏览器上下文配置
             context_options = {
@@ -298,6 +184,11 @@ class XServerAutoLogin:
                 'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
             }
             
+            # 如果启用代理，添加代理配置到上下文
+            if USE_PROXY and PROXY_SERVER:
+                context_options['proxy'] = {
+                    'server': PROXY_SERVER
+                }
             
             # 创建浏览器上下文
             self.context = await self.browser.new_context(**context_options)
@@ -309,8 +200,8 @@ class XServerAutoLogin:
             await stealth_async(self.page)
             print("✅ Stealth 插件已应用")
             
-            if effective_proxy:
-                print(f"✅ Playwright 浏览器初始化成功 (使用代理: {effective_proxy})")
+            if USE_PROXY:
+                print(f"✅ Playwright 浏览器初始化成功 (使用代理: {PROXY_SERVER})")
             else:
                 print("✅ Playwright 浏览器初始化成功")
             return True
@@ -320,7 +211,7 @@ class XServerAutoLogin:
             return False
     
     async def take_screenshot(self, step_name=""):
-        """截图功能 - 用于可视化调试（保存到 screenshots/ 目录）"""
+        """截图功能 - 用于可视化调试"""
         try:
             if self.page:
                 self.screenshot_count += 1
@@ -331,12 +222,9 @@ class XServerAutoLogin:
                 
                 # 确保文件名安全
                 filename = re.sub(r'[<>:"/\\|?*]', '_', filename)
-                # ✅ 最小改动：确保目录存在 + 写入 screenshots/
-                os.makedirs("screenshots", exist_ok=True)
-                filepath = os.path.join("screenshots", filename)
                 
-                await self.page.screenshot(path=filepath, full_page=True)
-                print(f"📸 截图已保存: {filepath}")
+                await self.page.screenshot(path=filename, full_page=True)
+                print(f"📸 截图已保存: {filename}")
                 
         except Exception as e:
             print(f"⚠️ 截图失败: {e}")
