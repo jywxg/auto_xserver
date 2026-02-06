@@ -28,6 +28,9 @@ jobs:
           sudo apt-get install -y xvfb
           pip install --upgrade pip
           pip install -r requirements.txt
+          # Install Playwright and required browsers
+          pip install playwright
+          playwright install
 
       - name: 🚀 Run renew script
         env:
