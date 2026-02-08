@@ -825,7 +825,7 @@ class XServerAutoLogin:
     # =================================================================
     
     def generate_readme(self):
-        """生成README.md文件记录续期情况"""
+        """生成README-notify.md文件记录续期情况"""
         try:
             print("📝 正在生成README.md文件...")
             
@@ -855,10 +855,10 @@ class XServerAutoLogin:
                 readme_content += f"🕛️旧到期时间: `{self.old_expiry_time or 'Unknown'}`<br>\n"
             
             # 写入README.md文件
-            with open("README.md", "w", encoding="utf-8") as f:
+            with open("README-notify.md", "w", encoding="utf-8") as f:
                 f.write(readme_content)
             
-            print("✅ README.md文件生成成功")
+            print("✅ README-notify.md文件生成成功")
             print(f"📄 续期状态: {self.renewal_status}")
             print(f"📅 原到期时间: {self.old_expiry_time or 'Unknown'}")
             if self.new_expiry_time:
