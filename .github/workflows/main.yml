@@ -48,13 +48,6 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           PROXY_SERVER: ${{ secrets.PROXY_SERVER }}
         run: python renew.py
-      - name: Commit report-notify.md  to repo
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add report-notify.md
-          git commit -m "chore: update report-notify.md" || echo "No changes to commit"
-          git push 
 
       # ⏱️ 提交 time.txt 到仓库(用于解决60天无文件变化的限制)
       - name: Commit time.txt to repo
