@@ -50,30 +50,30 @@ jobs:
         run: python renew.py
 
       - name: Commit time.txt (+ report if changed) to repo
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-    
-        # 每次都更新 time.txt（纳秒级，确保必变）
-        echo "$(date +'%Y-%m-%d %H:%M:%S')" > time.txt
-        git add time.txt
-    
-        # report-notify.md：只有真的变化/新生成才 add
-        if [ -n "$(git status --porcelain -- report-notify.md)" ]; then
-          echo "report-notify.md changed -> add it"
-          git add report-notify.md
-        else
-          echo "report-notify.md unchanged -> skip"
-        fi
-    
-        # 理论上不会触发（因为 time.txt 必变），留着做兜底也行
-        if git diff --cached --quiet; then
-          echo "无变化，无需提交"
-          exit 0
-        fi
-    
-        git commit -m "⏱️ update: $(date +'%Y-%m-%d %H:%M:%S')"
-        git push origin HEAD:main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+          # 每次都更新 time.txt（纳秒级，确保必变）
+          echo "$(date +'%Y-%m-%d %H:%M:%S')" > time.txt
+          git add time.txt
+      
+          # report-notify.md：只有真的变化/新生成才 add
+          if [ -n "$(git status --porcelain -- report-notify.md)" ]; then
+            echo "report-notify.md changed -> add it"
+            git add report-notify.md
+          else
+            echo "report-notify.md unchanged -> skip"
+          fi
+      
+          # 理论上不会触发（因为 time.txt 必变），留着做兜底也行
+          if git diff --cached --quiet; then
+            echo "无变化，无需提交"
+            exit 0
+          fi
+      
+          git commit -m "⏱️ update: $(date +'%Y-%m-%d %H:%M:%S')"
+          git push origin HEAD:main
 
