@@ -19,17 +19,7 @@ GITHUB_TOKEN 不用你手动创建 —— 只要你的 workflow 在 GitHub Actio
 
 ### 你需要做的通常是 给它权限、以及确认 checkout 会把它用在 push 上。
 
-1) 你不需要创建：它默认就存在,在 workflow 里这样写就能用：
-```
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-```
-
-这个 secrets.GITHUB_TOKEN 是 GitHub 自动注入的，不会出现在 “Secrets” 列表里让你手动建。
-
-
-2) 你需要设置的地方：给它写权限
+1) 你需要设置的地方：给它写权限
 
 到仓库：
 
@@ -38,6 +28,8 @@ env:
 选择：
 
 ✅ Read and write permissions
+
+然后保存
 
 ## 3、关闭网站里的账号敏感通知。
 3.1） 打开小日子游戏机网页登录地址进行登录
