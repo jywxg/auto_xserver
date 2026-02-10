@@ -53,6 +53,9 @@ env:
 ## 4、修改定时任务执行时间。
 ### main.yml里面修改你的定时任务的执行时间（建议根据你自己下面的到期时间去调整定时。）
 
+<img width="581" height="105" alt="CleanShot 2026-02-10 at 08 15 53" src="https://github.com/user-attachments/assets/c5ff16ab-842b-48b0-a09b-f2137f199f4c" />
+
+
 
 
 
