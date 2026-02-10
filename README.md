@@ -40,9 +40,10 @@ env:
 ✅ Read and write permissions
 
 ## 3、关闭网站里的账号敏感通知。
-3.1） 登录https://secure.xserver.ne.jp/xapanel/login/xmgame/
+3.1） 打开https://secure.xserver.ne.jp/xapanel/login/xmgame/ 进行登录
 
-<img width="578" height="107" alt="CleanShot 2026-02-08 at 13 17 35" src="https://github.com/user-attachments/assets/ad17bcef-cb4a-4c4b-bddd-bc97933badcf" />
+<img width="500" height="622" alt="CleanShot 2026-02-10 at 08 07 11" src="https://github.com/user-attachments/assets/8766e4cd-fbb1-4fb5-a07f-290f6aaea611" />
+
 
 <img width="702" height="462" alt="CleanShot 2026-02-10 at 08 10 04" src="https://github.com/user-attachments/assets/33f2e9d3-0ba5-40e8-bbdb-6d106d2c7d42" />
 
